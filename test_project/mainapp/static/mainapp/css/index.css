@@ -1,0 +1,26 @@
+.top {
+    padding: 5px;
+    
+}
+
+#id_location {
+    width: 100%;
+
+}
+
+.logo {
+    object-fit: scale-down;
+
+}
+
+.del_btn {
+    width: 100%;
+}
+
+.wrapper {
+    padding: 5px;
+}
+
+.tbl {
+    padding: 5px;
+}

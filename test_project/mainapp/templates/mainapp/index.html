@@ -1,0 +1,212 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Тестовый проект</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+  <link type="text/css" rel="stylesheet" href="{% static 'mainapp/css/index.css'%}">
+</head>
+<body>
+
+  <div class="container-fluid top">
+    <form id="get_weather_form" action="" method="post">
+      <div class="row justify-content-md-center">
+        <div class="col-5" >
+          {% csrf_token %}
+          {{ form }}
+        </div>
+        <button type="submit" class="btn btn-outline-dark col-1">Обновить</button>
+      </div>
+    </form>
+  </div>
+  
+  <table id="cities" class="tbl table table-striped table-bordered">
+    <thead>
+      <tr id="filters">
+        <th>
+          <input name="city" type="" class="form-control filter" onkeyup="filTable()">
+        </th>
+        <th>
+          <input name="datetime" type="" class="form-control filter" onkeyup="filTable()">
+        </th>
+        <th>
+          <input name="weather" type="" class="form-control filter" onkeyup="filTable()">
+        </th>
+        <th>
+          <input name="temp" type="" class="form-control filter" onkeyup="filTable()">
+        </th>
+        <th>
+          <input name="feels_like" type="" class="form-control filter" onkeyup="filTable()">
+        </th>
+        <th>
+          <input name="pressure" type="" class="form-control filter" onkeyup="filTable()">
+        </th>
+        <th>
+          <input name="humidity" type="" class="form-control filter" onkeyup="filTable()">
+        </th>
+        <th>
+          <button class="btn btn-outline-light" onclick="delfilters()">X</button>
+        </th>
+      </tr>
+      <tr>
+        <th>Город</th>
+        <th>Дата-время</th>
+        <th>Погода</th>
+        <th>Температура °C</th>
+        <th>по ощущениям °C</th>
+        <th>Давление мм рт.с.</th>
+        <th>Влажность %</th>
+        <th >
+          <div hidden class="spinner-border" role="status" id="spinner">
+            <span class="sr-only"></span>
+          </div>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+
+    </tbody>
+  </table>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script>
+    // хранилище уже запрошенных городов
+    var session_cities = {};
+
+    // индикатор загрузки
+    var spinner = document.getElementById('spinner');
+
+    // --- Базовые методы вставки\удаления\обновления строк таблицы
+
+    function insRow(table_id, data) {
+      var table = document.getElementById(table_id).children[1];
+      // проверяем, существует ли уже строка с указанным городом
+      if (document.getElementById(data['id']) === null){
+          var new_row = table.insertRow();
+          new_row.setAttribute('id', data['id']);
+      }
+      else {
+          var new_row = document.getElementById(data['id']);
+          for (let i = 7; i > -1; i--) {
+              new_row.deleteCell(i);
+          }
+      };
+
+      new_row.insertCell(0).innerHTML = (data['name']);
+      date = new Date(data['dt'] * 1000);
+      new_row.insertCell(1).innerHTML = (date.toDateString() + " " + date.toTimeString()).slice(0,33);
+      new_row.insertCell(2).innerHTML = data['weather'][0]['description'];
+      new_row.insertCell(3).innerHTML = data['main']['temp'];
+      new_row.insertCell(4).innerHTML = data['main']['feels_like'];
+      new_row.insertCell(5).innerHTML = data['main']['pressure']/ 1.3333;
+      new_row.insertCell(6).innerHTML = data['main']['humidity'];
+      new_row.insertCell(7).innerHTML = "<button class='btn btn-outline-light del_btn' onclick=\"delRow('cities', \'" + data['id'] + "\')\">X</button>";
+      filter_enabler();
+    };
+
+    function delRow(table_id, row_id) {
+      var table = document.getElementById(table_id);
+      var row = document.getElementById(row_id);
+      // Удаляем город из списка уже запрошеных, затем удаляем строку таблицы
+      delete session_cities[row_id];
+      table.deleteRow(row.rowIndex);
+      filter_enabler();
+    };
+
+
+    // AJAX
+    $(document).ready(function () {
+          // отслеживаем событие отправки формы
+          $("#get_weather_form").submit(function () {
+              spinner.removeAttribute('hidden');
+              // создаем AJAX-вызов
+              $.ajax({
+                  data: $(this).serialize(), // получаем данные формы
+                  type: $(this).attr('method'), // GET или POST
+                  url: "{% url 'mainapp:home' %}",
+                  // если успешно, то
+                  success: function (response) {
+                    console.log(response.api_response);
+                    if (response.api_response['cod'] === "404") {
+                        alert('Указанный город не найден!\nПопробуйте другой');
+                        spinner.setAttribute('hidden', 'true');
+                    }
+                    else {
+                      // Запоминаем город
+                        session_cities[response.api_response['id']] = response.api_response['name'];
+                      // вставка информации в таблицу
+                        insRow('cities', response.api_response);
+                        spinner.setAttribute('hidden', 'true');
+                    }
+                  },
+                
+                  error: function (response) {
+                      alert(response.responseJSON.errors);
+                      console.log(response.responseJSON.errors);
+                  } 
+              });
+              return false;
+          });
+      });
+
+
+    // Методы фильтров
+
+    // включение-выключение возможности фильтрации
+    function filter_enabler() {
+      inputs = document.querySelectorAll('.filter');
+      //console.log(inputs);
+      if (Object.keys(session_cities).length === 0) {
+        inputs.forEach(element => {
+          element.setAttribute('disabled', 'true')
+        });
+      }
+      else {
+        inputs.forEach(element => {
+          element.removeAttribute('disabled');
+        });
+      };
+    }
+
+
+    function filTable() {
+      var filters = document.querySelectorAll('.filter');
+      var table = document.getElementById('cities').children[1];
+
+      for (var i=0; i < table.rows.length; i++){
+          
+          if (
+              table.rows[i].cells[0].innerHTML.indexOf(filters[0].value) === -1 ||
+              table.rows[i].cells[1].innerHTML.indexOf(filters[1].value) === -1 ||
+              table.rows[i].cells[2].innerHTML.indexOf(filters[2].value) === -1 ||
+              table.rows[i].cells[3].innerHTML.indexOf(filters[3].value) === -1 ||
+              table.rows[i].cells[4].innerHTML.indexOf(filters[4].value) === -1 ||
+              table.rows[i].cells[5].innerHTML.indexOf(filters[5].value) === -1 ||
+              table.rows[i].cells[6].innerHTML.indexOf(filters[6].value) === -1 
+            ){
+              table.rows[i].setAttribute('hidden', 'true');
+          }
+          else {
+              table.rows[i].removeAttribute('hidden');
+          }
+        
+      }
+    };
+
+    function delfilters() {
+        var filters = document.querySelectorAll('.filter');
+        filters.forEach(element => {
+            element.value = '';
+        });
+        filTable();
+    };
+
+    filter_enabler();
+    filTable();
+
+  </script>
+</body>
+</html>
