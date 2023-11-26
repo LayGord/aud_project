@@ -31,5 +31,6 @@ def index(request):
     return render(request, 'mainapp\index.html', {'form': form})
 
 
-
+def task(request):
+    return render(request, 'mainapp\\task.html')
 # time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime(ti)) time from dt in unix
