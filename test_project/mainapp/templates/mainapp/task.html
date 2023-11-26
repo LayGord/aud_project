@@ -13,14 +13,14 @@
             </div>
             <div class="row">
                 <div class="col">
-                    <ul class="list-group ch_users">
+                    <ul class="list-group ch_users" id="ch_users">
                         <li data-id="0" class="list-group-item">вы</li>
                     </ul>
                 </div>
                 <div class="controlbuttons col-1 justify-content-center">
                     <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-primary toch"><-</button>
-                        <button type="button" class="btn btn-primary tol">-></button>
+                        <button id="move" type="button" class="btn btn-primary"><- -></button>
+                       
                     </div>
                 </div>
                 <div class="col">
@@ -41,21 +41,45 @@
     <script>
 
         var users = Array.from(document.getElementById('users').children);
-        var selected_elem = users[0];
-       
+        var ch_users = Array.from(document.getElementById('ch_users').children);
+        
+        var selected_user = users[0];
+
+        function select_user(user) {
+            selected_user.setAttribute("class", "list-group-item list-group-item-action");
+            user.setAttribute("class", "list-group-item list-group-item-action active");
+            selected_user = user;
+            console.log(selected_user);
+        }
+
+        function move_user(){
+            if (selected_user.parentNode.id === "users") {
+                users.pop(selected_user);
+                ch_users.push(selected_user);
+                document.getElementById('ch_users').appendChild(selected_user);
+                
+            }
+            else {
+                ch_users.pop(selected_user);
+                users.push(selected_user);
+                document.getElementById('users').appendChild(selected_user);
+                
+            }
+            console.log(users);
+        };
 
         users.forEach(element => {
             element.addEventListener('click', function (event) {
-                selected_elem.setAttribute("class", "list-group-item list-group-item-action");
-                element.setAttribute("class", "list-group-item list-group-item-action active");
-                selected_elem = element;
-                console.log(selected_elem);
+                select_user(element);
             })
         });
 
-        function move_user(user) {
-            null
-        }
+        document.getElementById("move").addEventListener('click', function(event) {
+            console.log('1');
+            move_user();
+        });
+
+        
 
 
     </script>
